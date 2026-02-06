@@ -3,7 +3,7 @@
   "name": "MetaMask Passthrough Wallet",
   "version": "0.1.0",
   "description": "Exposes a minimal Web3 wallet interface that passes all calls through to MetaMask.",
-  "permissions": ["storage"],
+  "permissions": ["storage", "scripting", "activeTab"],
   "host_permissions": ["<all_urls>"],
   "action": {
     "default_title": "MetaMask Passthrough Wallet",

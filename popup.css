@@ -82,3 +82,43 @@ input:checked + .track::after {
   font-size: 11px;
   color: #6b7483;
 }
+
+.address-card {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(22, 30, 45, 0.08);
+  display: grid;
+  gap: 6px;
+}
+
+.address-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #6b7483;
+}
+
+.address-value {
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: #1d2433;
+  word-break: break-all;
+}
+
+.refresh {
+  margin-top: 4px;
+  border: 0;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1f7ae0;
+  background: rgba(31, 122, 224, 0.12);
+  cursor: pointer;
+}
+
+.refresh:active {
+  transform: translateY(1px);
+}

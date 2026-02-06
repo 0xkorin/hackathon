@@ -7,6 +7,7 @@ A minimal Chrome extension that exposes a Web3 wallet interface by passing all c
 - If MetaMask is present, exposes `window.passthroughEthereum` as a direct passthrough provider.
 - Overrides `window.ethereum` with the passthrough provider when enabled.
 - Adds a tiny legacy `window.web3.currentProvider` shim.
+- Popup shows the currently connected address from the active tab.
 
 ## Install (unpacked)
 1. Open `chrome://extensions`.
@@ -17,4 +18,4 @@ A minimal Chrome extension that exposes a Web3 wallet interface by passing all c
 - This extension does not request permissions beyond content script injection.
 - It does not add its own UI or key management; it delegates to MetaMask.
 - If MetaMask is not installed, it logs a warning and does nothing.
-- Toggling the override applies on the next page load.
+- Toggling the override applies immediately on the active tab.
