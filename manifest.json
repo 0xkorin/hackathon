@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "MetaMask Passthrough Wallet",
+  "version": "0.1.0",
+  "description": "Exposes a minimal Web3 wallet interface that passes all calls through to MetaMask.",
+  "permissions": ["storage"],
+  "host_permissions": ["<all_urls>"],
+  "action": {
+    "default_title": "MetaMask Passthrough Wallet",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content-script.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["inpage.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

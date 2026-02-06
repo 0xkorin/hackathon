@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MetaMask Passthrough Wallet</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="container">
+      <h1>MetaMask Passthrough</h1>
+      <p class="subtitle">Toggle provider override</p>
+
+      <label class="toggle">
+        <input id="enabled" type="checkbox" />
+        <span class="track" aria-hidden="true"></span>
+        <span class="label-text">Enable override</span>
+      </label>
+
+      <p class="hint" id="hint">Changes apply on next page load.</p>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>
