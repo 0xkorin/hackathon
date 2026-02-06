@@ -8,6 +8,8 @@ A minimal Chrome extension that exposes a Web3 wallet interface by passing all c
 - Overrides `window.ethereum` with the passthrough provider when enabled.
 - Adds a tiny legacy `window.web3.currentProvider` shim.
 - Popup shows the currently connected address from the active tab.
+- Detects ERC20 approvals and captures them for batching (blocks the original tx).
+- Popup shows batch status and allows resetting captured approvals.
 
 ## Install (unpacked)
 1. Open `chrome://extensions`.

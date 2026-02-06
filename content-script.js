@@ -79,4 +79,67 @@
     sendEnabled(Boolean(message.enabled));
     sendResponse({ ok: true });
   });
+
+  const normalize = (value) => (typeof value === "string" ? value.toLowerCase() : null);
+
+  window.addEventListener("message", (event) => {
+    if (event.source !== window || !event.data) return;
+    if (event.data.source !== "mm-passthrough") return;
+    if (event.data.type !== "MM_PASSTHROUGH_APPROVAL") return;
+
+    const tx = event.data.tx || {};
+    const parsed = event.data.parsed || {};
+    const entry = {
+      id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      time: Date.now(),
+      from: tx.from || null,
+      to: tx.to || null,
+      data: tx.data || null,
+      value: tx.value || null,
+      token: parsed.token || tx.to || null,
+      owner: parsed.owner || tx.from || null,
+      spender: parsed.spender || null,
+      amount: parsed.amount || null
+    };
+
+    chrome.storage.local.get({ approvals: [], batchActive: false }, (result) => {
+      const approvals = Array.isArray(result.approvals) ? result.approvals : [];
+      approvals.push(entry);
+      chrome.storage.local.set({
+        approvals,
+        batchActive: true
+      });
+    });
+  });
+
+  window.addEventListener("message", (event) => {
+    if (event.source !== window || !event.data) return;
+    if (event.data.source !== "mm-passthrough") return;
+    if (event.data.type !== "MM_PASSTHROUGH_ALLOWANCE_QUERY") return;
+
+    const token = normalize(event.data.token);
+    const owner = normalize(event.data.owner);
+    const spender = normalize(event.data.spender);
+
+    chrome.storage.local.get({ approvals: [] }, (result) => {
+      const approvals = Array.isArray(result.approvals) ? result.approvals : [];
+      const match = approvals.find((entry) => {
+        return (
+          normalize(entry.token) === token &&
+          normalize(entry.owner) === owner &&
+          normalize(entry.spender) === spender
+        );
+      });
+
+      if (!match) return;
+      window.postMessage(
+        {
+          source: "mm-passthrough",
+          type: "MM_PASSTHROUGH_ALLOWANCE_MATCH",
+          approval: match
+        },
+        "*"
+      );
+    });
+  });
 })();

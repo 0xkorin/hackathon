@@ -23,6 +23,15 @@
         <button class="refresh" id="refresh" type="button">Refresh</button>
       </section>
 
+      <section class="batch-card" aria-live="polite">
+        <div class="batch-header">
+          <span class="batch-label">Batch status</span>
+          <span class="batch-status" id="batch-status">Idle</span>
+        </div>
+        <div class="batch-list" id="batch-list">No approvals captured.</div>
+        <button class="reset" id="reset-batch" type="button">Reset batch</button>
+      </section>
+
       <p class="hint" id="hint">Changes apply on next page load.</p>
     </main>
     <script src="popup.js"></script>
