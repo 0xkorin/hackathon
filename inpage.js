@@ -80,103 +80,47 @@
     return false;
   };
 
-  const AGGREGATE3_SELECTOR = "0x82ad56cb";
+  const pendingAllowanceRequests = new Map();
 
-  const readWord = (hex, byteOffset) => {
-    const start = byteOffset * 2;
-    if (hex.length < start + 64) return null;
-    return hex.slice(start, start + 64);
-  };
+  const requestAllowanceMatch = ({ token, owner, spender }) =>
+    new Promise((resolve) => {
+      const requestId = `allowance-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      const timeout = setTimeout(() => {
+        pendingAllowanceRequests.delete(requestId);
+        resolve(null);
+      }, 1500);
 
-  const parseAggregate3Calls = (data) => {
-    if (!data || typeof data !== "string") return [];
-    if (!data.toLowerCase().startsWith(AGGREGATE3_SELECTOR)) return [];
-    const hex = data.startsWith("0x") ? data.slice(2) : data;
-    const selectorBytes = 4;
-    const offsetWord = readWord(hex, selectorBytes);
-    if (!offsetWord) return [];
-    const arrayOffset = parseInt(offsetWord, 16);
-    if (Number.isNaN(arrayOffset)) return [];
+      pendingAllowanceRequests.set(requestId, { resolve, timeout });
+      window.postMessage(
+        {
+          source: "mm-passthrough",
+          type: "MM_PASSTHROUGH_ALLOWANCE_QUERY",
+          requestId,
+          token: token || null,
+          owner: owner || null,
+          spender: spender || null
+        },
+        "*"
+      );
+    });
 
-    const base = selectorBytes + arrayOffset;
-    const lengthWord = readWord(hex, base);
-    if (!lengthWord) return [];
-    const length = parseInt(lengthWord, 16);
-    if (!Number.isFinite(length) || length <= 0) return [];
-
-    const calls = [];
-    for (let i = 0; i < length; i += 1) {
-      const elementOffsetWord = readWord(hex, base + 32 + i * 32);
-      if (!elementOffsetWord) continue;
-      const elementOffset = parseInt(elementOffsetWord, 16);
-      if (Number.isNaN(elementOffset)) continue;
-      const elementPos = base + 32 + elementOffset;
-
-      const targetWord = readWord(hex, elementPos);
-      const dataOffsetWord = readWord(hex, elementPos + 64);
-      if (!targetWord || !dataOffsetWord) continue;
-      const target = `0x${targetWord.slice(24)}`;
-      const dataOffset = parseInt(dataOffsetWord, 16);
-      if (Number.isNaN(dataOffset)) continue;
-      const dataPos = elementPos + dataOffset;
-      const dataLenWord = readWord(hex, dataPos);
-      if (!dataLenWord) continue;
-      const dataLen = parseInt(dataLenWord, 16);
-      if (!Number.isFinite(dataLen) || dataLen <= 0) continue;
-      const dataStart = (dataPos + 32) * 2;
-      const dataHex = hex.slice(dataStart, dataStart + dataLen * 2);
-      calls.push({ target, callData: `0x${dataHex}` });
-    }
-    return calls;
-  };
-
-  const detectAllowanceCall = (payload) => {
-    if (!payload || payload.method !== "eth_call") return;
+  const detectAllowanceMatch = (payload) => {
+    if (!payload || payload.method !== "eth_call") return null;
     const params = Array.isArray(payload.params) ? payload.params : [];
     const call = params[0];
-    if (!call) return;
+    if (!call) return null;
 
     if (isErc20AllowanceData(call.data)) {
       const owner = decodeAddressParam(call.data, 0);
       const spender = decodeAddressParam(call.data, 1);
-      window.postMessage(
-        {
-          source: "mm-passthrough",
-          type: "MM_PASSTHROUGH_ALLOWANCE_QUERY",
-          token: call.to || null,
-          owner,
-          spender
-        },
-        "*"
-      );
-      return;
+      return requestAllowanceMatch({
+        token: call.to || null,
+        owner,
+        spender
+      });
     }
 
-    const calls = parseAggregate3Calls(call.data);
-    if (!calls.length) return;
-    calls.forEach((entry) => {
-      try {
-        console.log("MetaMask Passthrough Wallet: multicall subcall", {
-          target: entry.target,
-          data: entry.callData
-        });
-      } catch (_) {}
-    });
-    calls.forEach((entry) => {
-      if (!isErc20AllowanceData(entry.callData)) return;
-      const owner = decodeAddressParam(entry.callData, 0);
-      const spender = decodeAddressParam(entry.callData, 1);
-      window.postMessage(
-        {
-          source: "mm-passthrough",
-          type: "MM_PASSTHROUGH_ALLOWANCE_QUERY",
-          token: entry.target || null,
-          owner,
-          spender
-        },
-        "*"
-      );
-    });
+    return null;
   };
 
   const createPassthrough = (target) => {
@@ -200,7 +144,14 @@
                     new Error("Approval blocked: captured for batching")
                   );
                 }
-                detectAllowanceCall(args[0]);
+                const matchPromise = detectAllowanceMatch(args[0]);
+                if (matchPromise) {
+                  return matchPromise.then((match) => {
+                    if (match && match.amount) return match.amount;
+                    return value.apply(obj, args);
+                  });
+                }
+                return value.apply(obj, args);
               }
             } catch (_) {}
             return value.apply(obj, args);
@@ -352,6 +303,14 @@
     if (event.source !== window || !event.data) return;
     if (event.data.source !== "mm-passthrough") return;
     if (event.data.type !== "MM_PASSTHROUGH_ALLOWANCE_MATCH") return;
+    if (event.data.requestId && pendingAllowanceRequests.has(event.data.requestId)) {
+      const pending = pendingAllowanceRequests.get(event.data.requestId);
+      if (pending) {
+        clearTimeout(pending.timeout);
+        pendingAllowanceRequests.delete(event.data.requestId);
+        pending.resolve(event.data.approval || null);
+      }
+    }
     try {
       console.log("MetaMask Passthrough Wallet: allowance matches captured approval", event.data.approval);
     } catch (_) {}

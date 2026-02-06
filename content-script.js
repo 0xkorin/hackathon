@@ -120,6 +120,7 @@
     const token = normalize(event.data.token);
     const owner = normalize(event.data.owner);
     const spender = normalize(event.data.spender);
+    const requestId = event.data.requestId || null;
 
     chrome.storage.local.get({ approvals: [] }, (result) => {
       const approvals = Array.isArray(result.approvals) ? result.approvals : [];
@@ -130,6 +131,19 @@
           normalize(entry.spender) === spender
         );
       });
+
+      if (requestId) {
+        window.postMessage(
+          {
+            source: "mm-passthrough",
+            type: "MM_PASSTHROUGH_ALLOWANCE_MATCH",
+            requestId,
+            approval: match || null
+          },
+          "*"
+        );
+        return;
+      }
 
       if (!match) return;
       window.postMessage(
