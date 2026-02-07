@@ -105,6 +105,14 @@
     chrome.storage.local.get({ approvals: [], batchActive: false }, (result) => {
       const approvals = Array.isArray(result.approvals) ? result.approvals : [];
       approvals.push(entry);
+      if (!result.batchActive) {
+        try {
+          chrome.runtime.sendMessage({
+            type: "MM_PASSTHROUGH_BATCH_STARTED",
+            approval: entry
+          });
+        } catch (_) {}
+      }
       chrome.storage.local.set({
         approvals,
         batchActive: true
@@ -151,6 +159,32 @@
           source: "mm-passthrough",
           type: "MM_PASSTHROUGH_ALLOWANCE_MATCH",
           approval: match
+        },
+        "*"
+      );
+    });
+  });
+
+  window.addEventListener("message", (event) => {
+    if (event.source !== window || !event.data) return;
+    if (event.data.source !== "mm-passthrough") return;
+    if (event.data.type !== "MM_PASSTHROUGH_BATCH_QUERY") return;
+
+    const requestId = event.data.requestId || null;
+
+    chrome.storage.local.get({ approvals: [], batchActive: false }, (result) => {
+      const approvals = Array.isArray(result.approvals) ? result.approvals : [];
+      const batch = {
+        batchActive: Boolean(result.batchActive),
+        approvals
+      };
+
+      window.postMessage(
+        {
+          source: "mm-passthrough",
+          type: "MM_PASSTHROUGH_BATCH_RESPONSE",
+          requestId,
+          batch
         },
         "*"
       );
