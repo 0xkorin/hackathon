@@ -1,23 +1,29 @@
 # MetaMask Passthrough Wallet (Chrome Extension)
 
-A minimal Chrome extension that exposes a Web3 wallet interface by passing all calls through to the existing MetaMask provider.
+## Overview
+A minimal Chrome extension that exposes a passthrough provider for MetaMask and adds an approval/allowance capture layer used by the hackathon UI flow.
 
-## What it does
-- Injects `inpage.js` at `document_start`.
-- If MetaMask is present, exposes `window.passthroughEthereum` as a direct passthrough provider.
-- Overrides `window.ethereum` with the passthrough provider when enabled.
-- Adds a tiny legacy `window.web3.currentProvider` shim.
-- Popup shows the currently connected address from the active tab.
-- Detects ERC20 approvals and captures them for batching (blocks the original tx).
-- Popup shows batch status and allows resetting captured approvals.
+## Repo relationship (hackathon-ui)
+- This extension is designed to be used with https://github.com/0xkorin/hackathon-ui.
+- It intercepts ERC20 approvals, stores them, and can spoof allowance reads so the hackathon-ui UI enables the deposit flow.
+- Deposit still goes to MetaMask as a normal transaction (no on-chain bundle).
 
-## Install (unpacked)
+## Setup (unpacked)
 1. Open `chrome://extensions`.
 2. Enable **Developer mode**.
 3. Click **Load unpacked** and select this folder.
+4. Use the popup to toggle the passthrough override if needed.
 
-## Notes
-- This extension does not request permissions beyond content script injection.
-- It does not add its own UI or key management; it delegates to MetaMask.
-- If MetaMask is not installed, it logs a warning and does nothing.
-- Toggling the override applies immediately on the active tab.
+## How it works
+- `content-script.js` injects `inpage.js` at `document_start`.
+- `inpage.js` exposes `window.passthroughEthereum`, optionally overrides `window.ethereum`, and adds a legacy `window.web3.currentProvider` shim.
+- ERC20 `approve` transactions are detected (`0x095ea7b3`), blocked, and stored in `chrome.storage.local`.
+- ERC20 `allowance` reads (`0xdd62ed3e`) are checked against stored approvals; matching requests return the stored amount so dapps see the allowance.
+- All other requests are forwarded to MetaMask unchanged.
+
+## Contracts / test tx
+- This extension does not hardcode token or spender addresses; it only inspects calldata.
+- Reference test tx (Sepolia): https://sepolia.etherscan.io/tx/0x43f9d50160e98104eade0a47da8166630a6198954651426c581e5de4e7c89a8e#eventlog
+
+## Tests
+- No automated test suite is included in this repo.
